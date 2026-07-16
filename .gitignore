@@ -1,0 +1,18 @@
+# Python environment
+.venv/
+.venv1/
+__pycache__/
+*.pyc
+
+# Local GEE Cache credentials
+gee_project.txt
+
+# GIS temporary output binaries (Heavy GeoTIFFs)
+data/output/
+scripts/temp/
+*.tif
+*.zip
+
+# IDE specific settings
+.idea/
+.vscode/

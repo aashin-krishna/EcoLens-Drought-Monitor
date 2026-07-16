@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drought Monitor - VCI & NDVI Geospatial Dashboard</title>
+    
+    <!-- Google Fonts: Outfit & Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Leaflet.js CSS (Geospatial Mapping) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    
+    <!-- Custom Style Sheet -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        
+        <!-- Header -->
+        <header class="app-header">
+            <div class="logo-area">
+                <div class="icon-pulse"></div>
+                <h1>EcoLens <span class="subtitle">Drought Monitor</span></h1>
+            </div>
+            <div class="meta-status">
+                <span class="badge badge-error">Drought Alert</span>
+                <span class="region-tag" id="region-tag">India</span>
+                <span class="year-tag" id="year-tag">Target: 2025</span>
+            </div>
+        </header>
+
+        <!-- Main Workspace -->
+        <main class="app-workspace">
+            
+            <!-- Left Panel: Analytics & Statistics -->
+            <section class="panel analytics-panel">
+                <div class="panel-header">
+                    <h2>Drought Analytics Summary</h2>
+                </div>
+                
+                <!-- Quick Stats Cards -->
+                <div class="stats-grid">
+                    <div class="card stat-card border-accent">
+                        <span class="card-label">Mean VCI Index</span>
+                        <div class="card-value-group">
+                            <span class="card-value" id="mean-vci-val">34.62</span>
+                            <span class="card-unit">%</span>
+                        </div>
+                        <span class="card-desc status-severe" id="vci-status">Severe Drought Conditions</span>
+                    </div>
+                    <div class="card stat-card">
+                        <span class="card-label">High-Risk Area</span>
+                        <div class="card-value-group">
+                            <span class="card-value text-alert" id="high-risk-val">38.2</span>
+                            <span class="card-unit">%</span>
+                        </div>
+                        <span class="card-desc">Under Extreme or Severe stress</span>
+                    </div>
+                    <div class="card stat-card">
+                        <span class="card-label">Optimal Vegetation</span>
+                        <div class="card-value-group">
+                            <span class="card-value text-success" id="optimal-val">13.4</span>
+                            <span class="card-unit">%</span>
+                        </div>
+                        <span class="card-desc">Healthy/Wet condition</span>
+                    </div>
+                </div>
+
+                <!-- Chart 1: VCI & NDVI 12-Month Timeline -->
+                <div class="card chart-card">
+                    <h3 class="chart-title">Vegetation Trend vs. Historical Limits</h3>
+                    <div class="chart-container">
+                        <canvas id="timelineChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Chart 2: Drought Class Distribution -->
+                <div class="card chart-card">
+                    <h3 class="chart-title">Drought Severity Distribution (% Area)</h3>
+                    <div class="chart-container-half">
+                        <canvas id="distributionChart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Right Panel: Interactive Map Viewer -->
+            <section class="panel map-panel">
+                <div class="panel-header">
+                    <h2>Interactive Map Viewer</h2>
+                    <div class="map-controls">
+                        <select id="state-select" class="select-sm">
+                            <option value="All">All India</option>
+                        </select>
+                        <button class="btn btn-sm active" id="btn-toggle-vci">VCI Layer</button>
+                        <button class="btn btn-sm" id="btn-toggle-ndvi">NDVI Layer</button>
+                        <button class="btn btn-sm" id="btn-toggle-boundary">Show Boundary</button>
+                    </div>
+                </div>
+                
+                <div class="map-wrapper">
+                    <!-- Leaflet Map Container -->
+                    <div id="map"></div>
+                    
+
+
+                    <!-- Floating Map Legend -->
+                    <div class="map-legend" id="map-legend">
+                        <h4>VCI Drought Scale</h4>
+                        <div class="legend-scale">
+                            <div class="legend-item"><span class="color-box" style="background:#d73027"></span> Extreme (&le;20)</div>
+                            <div class="legend-item"><span class="color-box" style="background:#f46d43"></span> Severe (21-35)</div>
+                            <div class="legend-item"><span class="color-box" style="background:#fdae61"></span> Moderate (36-50)</div>
+                            <div class="legend-item"><span class="color-box" style="background:#a6d96a"></span> Mild (51-70)</div>
+                            <div class="legend-item"><span class="color-box" style="background:#1a9850"></span> Normal/Optimal (&gt;70)</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Bottom Panel: Methodology and Python Integration -->
+        <section class="info-section">
+            <div class="tabs-container">
+                <div class="tabs-header">
+                    <button class="tab-btn active" onclick="switchTab(event, 'tab-methodology')">Scientific Methodology</button>
+                    <button class="tab-btn" onclick="switchTab(event, 'tab-code')">Python Integration</button>
+                </div>
+                
+                <!-- Tab: Methodology -->
+                <div class="tab-content active" id="tab-methodology">
+                    <div class="grid-2-col">
+                        <div>
+                            <h4>How VCI & NDVI Monitor Drought</h4>
+                            <p><strong>NDVI (Normalized Difference Vegetation Index)</strong> measures green vegetation vigor using satellite reflectance. It scales from -1 to +1, where dense green vegetation falls above 0.5 and water or soil has negative/near-zero values. However, absolute NDVI cannot measure anomalies: a desert always has low NDVI but is not necessarily in "drought."</p>
+                            <p><strong>VCI (Vegetation Condition Index)</strong> standardizes NDVI by comparing the current NDVI value to its historical minimum and maximum for that exact pixel and time of year. VCI scales from 0 to 100:</p>
+                            <ul class="method-list">
+                                <li><strong>VCI = 100:</strong> Best vegetation condition recorded in history.</li>
+                                <li><strong>VCI = 0:</strong> Worst vegetation condition recorded in history.</li>
+                                <li><strong>VCI &le; 35:</strong> Signifies severe-to-extreme agricultural drought.</li>
+                            </ul>
+                        </div>
+                        <div class="math-box">
+                            <h5>Mathematical Formula</h5>
+                            <div class="formula-container">
+                                \[NDVI = \frac{\text{NIR} - \text{Red}}{\text{NIR} + \text{Red}}\]
+                                <br>
+                                \[VCI = \frac{NDVI_{\text{current}} - NDVI_{\text{min}}}{NDVI_{\text{max}} - NDVI_{\text{min}}} \times 100\]
+                            </div>
+                            <p class="formula-caption">Where $NDVI_{\text{min}}$ and $NDVI_{\text{max}}$ are pixel-by-pixel multi-year envelope parameters (2015-2024).</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab: Python Code -->
+                <div class="tab-content" id="tab-code">
+                    <div class="code-header">
+                        <span>scripts/calculate_indices.py</span>
+                        <button class="btn btn-sm btn-copy" onclick="copyCode()">Copy Code</button>
+                    </div>
+                    <pre><code id="python-code-block">import ee
+import config
+
+# Initialize Earth Engine
+ee.Initialize()
+
+# Calculate pixel-wise min and max NDVI historically
+modis = ee.ImageCollection("MODIS/061/MOD13Q1") \
+          .filterBounds(roi) \
+          .filter(ee.Filter.calendarRange(2015, 2024, 'year')) \
+          .filter(ee.Filter.calendarRange(8, 8, 'month')) \
+          .select('NDVI')
+
+scale_modis = lambda img: img.multiply(0.0001)
+modis_scaled = modis.map(scale_modis)
+
+ndvi_min = modis_scaled.min()
+ndvi_max = modis_scaled.max()
+
+# Load current Sentinel-2 imagery
+s2_current = ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED") \
+               .filterBounds(roi) \
+               .filterDate('2025-08-01', '2025-09-01') \
+               .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20)) \
+               .median()
+
+# Compute current NDVI
+ndvi_current = s2_current.normalizedDifference(['B8', 'B4'])
+
+# Calculate Vegetation Condition Index (VCI)
+vci = ndvi_current.subtract(ndvi_min) \
+                  .divide(ndvi_max.subtract(ndvi_min)) \
+                  .multiply(100.0) \
+                  .clamp(0, 100)</code></pre>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="app-footer">
+            <p>Developed with Antigravity AI Code Companion | Standardized GIS Sandbox</p>
+        </footer>
+        
+    </div>
+
+    <!-- Leaflet.js Javascript -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    
+    <!-- Chart.js Javascript -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Mathematical Rendering via LaTeX -->
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <!-- Custom Logic Script -->
+    <script src="app.js"></script>
+</body>
+</html>
